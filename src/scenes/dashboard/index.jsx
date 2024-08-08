@@ -1,3 +1,4 @@
+import React, { useRef, useState, useEffect } from "react";
 import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
 import { mockTransactions } from "../../data/mockData";
@@ -12,10 +13,46 @@ import GeographyChart from "../../components/GeographyChart";
 import BarChart from "../../components/BarChart";
 import StatBox from "../../components/StatBox";
 import ProgressCircle from "../../components/ProgressCircle";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const dashboardRef = useRef(null);
+  const lineChartRef = useRef(null);
+  const [isContentReady, setContentReady] = useState(false);
+
+  useEffect(() => {
+    setContentReady(true);
+  }, []);
+
+  const downloadPDF = (ref, filename) => {
+    const input = ref.current;
+    console.log("PDF element:", input); 
+    if (input) {
+      setTimeout(() => {
+        html2canvas(input).then((canvas) => {
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new jsPDF("p", "mm", "a4");
+          const imgWidth = 210;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+          pdf.save(filename);
+        });
+      }, 1000); 
+    } else {
+      console.error("Element not found or not yet rendered.");
+    }
+  };
+
+  const downloadDashboardPDF = () => {
+    downloadPDF(dashboardRef, "dashboard.pdf");
+  };
+
+  const downloadLineChartPDF = () => {
+    downloadPDF(lineChartRef, "line_chart.pdf");
+  };
 
   return (
     <Box m="20px">
@@ -32,6 +69,8 @@ const Dashboard = () => {
               fontWeight: "bold",
               padding: "10px 20px",
             }}
+            onClick={downloadDashboardPDF}
+            disabled={!isContentReady}
           >
             <DownloadOutlinedIcon sx={{ mr: "10px" }} />
             Download Reports
@@ -41,6 +80,7 @@ const Dashboard = () => {
 
       {/* GRID & CHARTS */}
       <Box
+        ref={dashboardRef}
         display="grid"
         gridTemplateColumns="repeat(12, 1fr)"
         gridAutoRows="140px"
@@ -154,14 +194,14 @@ const Dashboard = () => {
               </Typography>
             </Box>
             <Box>
-              <IconButton>
+              <IconButton onClick={downloadLineChartPDF}>
                 <DownloadOutlinedIcon
                   sx={{ fontSize: "26px", color: colors.greenAccent[500] }}
                 />
               </IconButton>
             </Box>
           </Box>
-          <Box height="250px" m="-20px 0 0 0">
+          <Box height="250px" m="-20px 0 0 0" ref={lineChartRef}>
             <LineChart isDashboard={true} />
           </Box>
         </Box>
@@ -270,10 +310,10 @@ const Dashboard = () => {
             fontWeight="600"
             sx={{ marginBottom: "15px" }}
           >
-            Geography Based Traffic
+            Geography Chart
           </Typography>
-          <Box height="200px">
-            <GeographyChart isDashboard={true} />
+          <Box height="250px">
+            <GeographyChart />
           </Box>
         </Box>
       </Box>
